@@ -113,6 +113,7 @@ class SphericalRefraction(OpticalElement):
         ax.set_ylabel('Y')
         ax.set_zlabel('Z')
         
+        
 
 class OutputPlane(OpticalElement):
     def __init__(self, z_0: float):

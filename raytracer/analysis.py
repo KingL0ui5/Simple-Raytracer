@@ -171,6 +171,8 @@ def task12():
     bundle.propagate_bundle([refractor, output])
     
     fig = bundle.track_plot()    
+    ax = fig.axes[0]
+    refractor.plot_surface(ax)  
     return fig
 
 
@@ -187,7 +189,16 @@ def task13():
     Returns:
         tuple[Figure, float]: the spot plot and rms
     """
-    return
+    bundle = RayBundle()
+    refractor = SphericalRefraction(**default_refractor)
+    focal_point = refractor.focal_point()
+    output = OutputPlane(z_0 = focal_point)
+    
+    bundle.propagate_bundle([refractor, output])
+    fig = bundle.spot_plot()
+    rms = bundle.rms()
+    
+    return [fig, rms]
 
 
 def task14():
@@ -204,7 +215,38 @@ def task14():
     Returns:
         tuple[Figure, float, float]: the plot, the simulation RMS value, the diffraction scale.
     """
-    return
+    wavelength = 588e-6  # mm
+
+    radius_arr = np.arange(0.1, 10.0, 0.1)
+
+    refractor = SphericalRefraction(**default_refractor)
+    focal_point = refractor.focal_point()
+    output = OutputPlane(z_0 = focal_point)
+    focal_length = focal_point - refractor.z_0()
+
+    rms_arr = []
+    for r in radius_arr:
+        bundle = RayBundle(rmax = r)
+        bundle.propagate_bundle([refractor, output])
+        rms_arr.append(bundle.rms())
+
+    rms_arr = np.array(rms_arr)
+    diff_scale_arr = wavelength * focal_length / (2 * radius_arr)
+    mask = np.isclose(radius_arr, 2.5)
+    i = np.where(mask)[0]
+    
+    standard_rms = rms_arr[i][0]
+    standard_diff = diff_scale_arr[i][0]
+    
+    fig = plt.figure()
+    ax = fig.add_subplot()
+    ax.plot(radius_arr, rms_arr, label = 'RMS Spread', color = 'blue')
+    ax.plot(radius_arr, diff_scale_arr, label = '∆x Scale', color = 'red')
+    ax.set_xlabel('Beam Radius')
+    ax.set_title('RMS vs Diffraction Scale')
+    ax.legend()
+
+    return [fig, standard_rms, standard_diff]
 
 
 def task15():

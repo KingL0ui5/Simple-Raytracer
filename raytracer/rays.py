@@ -78,7 +78,30 @@ class RayBundle:
     
         return fig
         
+    def rms(self):
+        positions = np.array([ray.pos() for ray in self.__rays])
+        squared_dists = np.sum(positions[:, :2] ** 2, axis=1)
+        rms = np.sqrt(np.mean(squared_dists))
+        return rms
 
+
+    def spot_plot(self):
+        x = [ray.pos()[0] for ray in self.__rays]
+        y = [ray.pos()[1] for ray in self.__rays]
+
+
+        fig = plt.figure()
+        ax = fig.add_subplot()
+        ax.scatter(x, y, s=10, color='blue')
+        ax.set_xlabel('x position (mm)')
+        ax.set_ylabel('y position (mm)')
+        ax.set_title('Spot Plot')
+        ax.grid(True)
+        return fig
+            
+        
+            
+    
     
         
             
