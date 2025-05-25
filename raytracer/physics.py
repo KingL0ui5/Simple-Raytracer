@@ -3,7 +3,7 @@ A module for refractive physics calculations using snell's law.
 L Liu 23/05
 """
 import numpy as np
-from raytracer.helpers import Utils as hlp 
+from .helpers import Utils as hlp 
         
 def refract(direc, normal, n_1, n_2): # test
     hlp.validate_vector(direc, "Direc")

@@ -3,8 +3,8 @@ This module contains the optical elements of the system.
 L Liu 22/05
 """
 import numpy as np
-from raytracer.rays import Ray
-from raytracer.physics import refract 
+from .rays import Ray
+from .physics import refract 
 
 class OpticalElement:
     def intercept(self, ray):
@@ -82,6 +82,36 @@ class SphericalRefraction(OpticalElement):
             return None
         
         ray.append(intercept, refracted_direc)     
+        
+    def focal_point(self) -> float:
+        R = 1. / self.__curvature
+        z = self.__z_0 + (self.__n_2 * R) / (self.__n_2 - self.__n_1) # lensmakers formula
+        return z
+        
+    def plot_surface(self, ax, resolution=100):
+        r_max = self.__aperture / 2
+        curvature = self.__curvature
+
+        x = np.linspace(-r_max, r_max, resolution)
+        y = np.linspace(-r_max, r_max, resolution)
+        X, Y = np.meshgrid(x, y)
+        R2 = X**2 + Y**2
+
+        mask = R2 <= r_max**2
+
+        Z = np.zeros_like(X) + self.__z_0
+        if curvature != 0:
+            R = 1 / curvature
+            Z[mask] += R - np.sqrt(R**2 - R2[mask])
+        else:
+            Z[mask] += 0  
+
+        Z[~mask] = np.nan
+
+        ax.plot_surface(X, Y, Z, alpha=0.5, color='cyan', rstride=1, cstride=1, linewidth=0)
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_zlabel('Z')
         
 
 class OutputPlane(OpticalElement):

@@ -1,5 +1,17 @@
 """Analysis module."""
 import matplotlib.pyplot as plt
+from .elements import SphericalRefraction, OutputPlane
+from .rays import Ray, RayBundle
+from mpl_toolkits.mplot3d import Axes3D
+import numpy as np
+
+default_refractor = {
+    "z_0": 100,
+    "aperture": 34,
+    "curvature": 0.03,
+    "n_1": 1,
+    "n_2": 1.5
+}
 
 
 def task8():
@@ -10,7 +22,37 @@ def task8():
     finds the correct intercept and correctly refracts a ray. Don't forget
     to check that the correct values are appended to your Ray object.
     """
+    test_ray = Ray(direc=[0, 1, 10])
+    test_ray1 = Ray(direc=[1, 0, 10])
 
+    refractor = SphericalRefraction(**default_refractor)
+    refractor.propagate_ray(test_ray)
+    refractor.propagate_ray(test_ray1)
+    
+    vertices = test_ray.vertices()
+    vertices1 = test_ray1.vertices()
+    all_vertices = vertices + vertices1
+    points = np.vstack(all_vertices)
+    
+    x = points[:,0]
+    y = points[:, 1]
+    z = points[:, 2]    
+    
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    refractor.plot_surface(ax = ax)
+    ax.plot(x, y, z, marker='o') 
+
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
+    ax.set_title('Ray Vertices Path')
+
+    plt.show()
+    
+    
+        
+    
 
 def task10():
     """
@@ -24,7 +66,42 @@ def task10():
     Returns:
         Figure: the ray path plot.
     """
-    return
+    
+    positions = [
+    [0, 4, 0],
+    [0, 1, 0],
+    [0, 0.2, 0],
+    [0, 0, 0],
+    [0, -0.2, 0],
+    [0, -1, 0],
+    [0, -4, 0]
+    ]
+    direc = [0, 0, 1]
+    rays = [Ray(pos=pos, direc=direc) for pos in positions]
+    refractor = SphericalRefraction(**default_refractor)
+    output = OutputPlane(z_0 = 250)
+    
+    [refractor.propagate_ray(ray) for ray in rays]
+    [output.propagate_ray(ray) for ray in rays]
+    vertices = [v for ray in rays for v in ray.vertices()]
+    points = np.vstack(vertices)
+
+    
+    x = points[:,0]
+    y = points[:, 1]
+    z = points[:, 2]    
+    
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    refractor.plot_surface(ax = ax)
+    ax.plot(x, y, z, marker='o') 
+
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z') 
+    ax.set_title('Ray Vertices Path')
+    
+    return fig
 
 
 def task11():
@@ -40,7 +117,39 @@ def task11():
     Returns:
         tuple[Figure, float]: the ray path plot and the focal point
     """
-    return
+    positions = [
+    [0.1, 0.1, 0],
+    [0, 0, 0],
+    [-0.1, -0.1, 0]
+    ]
+    
+    direc = [0, 0, 1]
+    rays = [Ray(pos=pos, direc=direc) for pos in positions]
+    refractor = SphericalRefraction(z_0 = 100, aperture = 34, curvature = 0.03, n_1 = 1, n_2 = 1.5)
+    focal_point = refractor.focal_point()
+    output = OutputPlane(z_0 = focal_point)
+    
+    [refractor.propagate_ray(ray) for ray in rays]
+    [output.propagate_ray(ray) for ray in rays]
+    vertices = [v for ray in rays for v in ray.vertices()]
+    points = np.vstack(vertices)
+
+    
+    x = points[:,0]
+    y = points[:, 1]
+    z = points[:, 2]    
+    
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    refractor.plot_surface(ax = ax)
+    ax.plot(x, y, z, marker='o') 
+
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z') 
+    ax.set_title('Ray Vertices Path')
+    
+    return [fig, focal_point]
 
 
 def task12():
@@ -54,7 +163,15 @@ def task12():
     Returns:
         Figure: the track plot.
     """
-    return
+    bundle = RayBundle()
+    refractor = SphericalRefraction(**default_refractor)
+    focal_point = refractor.focal_point()
+    output = OutputPlane(z_0 = focal_point)
+    
+    bundle.propagate_bundle([refractor, output])
+    
+    fig = bundle.track_plot()    
+    return fig
 
 
 def task13():
