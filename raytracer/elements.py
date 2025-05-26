@@ -9,11 +9,15 @@ from .physics import refract
 class OpticalElement:
     def intercept(self, ray):
             raise NotImplementedError('intercept() needs to be implemented in derived classes')
+        
     def propagate_ray(self, ray):
             raise NotImplementedError('propagate_ray() needs to be implemented in derived classes')
+        
+    def focal_point(self):
+            raise NotImplementedError('focal_point() needs to be implemented in derived classes')
             
 class SphericalRefraction(OpticalElement):
-    def __init__(self, z_0: int, aperture: int, curvature: float, n_1: float, n_2: float):
+    def __init__(self, z_0: float, aperture: float, curvature: float, n_1: float, n_2: float):
         self.__z_0 = z_0
         self.__aperture = aperture
         self.__curvature = curvature
@@ -35,7 +39,7 @@ class SphericalRefraction(OpticalElement):
     def n_2(self):  
         return self.__n_2
     
-    def intercept(self, ray):
+    def intercept(self, ray):        
         R = 1. / self.__curvature
         r = ray.pos() - np.array([0., 0., self.__z_0 + R]) 
         b = np.dot(ray.direc(), r)
@@ -91,6 +95,8 @@ class SphericalRefraction(OpticalElement):
     def plot_surface(self, ax, resolution=100):
         r_max = self.__aperture / 2
         curvature = self.__curvature
+        if curvature == 0:
+            curvature = 1e-10
 
         x = np.linspace(-r_max, r_max, resolution)
         y = np.linspace(-r_max, r_max, resolution)
@@ -112,8 +118,45 @@ class SphericalRefraction(OpticalElement):
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
         ax.set_zlabel('Z')
+    
+class PlaneRefraction(OpticalElement):
+    def __init__(self, z_0: float, aperture: float, n_1: float, n_2: float):
+        self.__z_0 = z_0
+        self.__n_1 = n_1
+        self.__n_2 = n_2
+        self.__aperture = aperture
         
+    def z_0(self):
+        return self.__z_0
+    
+    def n_1(self):
+        return self.__n_1
+    
+    def n_2(self):
+        return self.__n_2
+    
+    def aperture(self):
+        return self.__aperture
+    
+    def intercept(self, ray):
+        if ray.direc()[2] == 0: 
+            return None
+        k = (self.__z_0 - ray.pos()[2]) / ray.direc()[2]
+        intercept = ray.pos() + k * ray.direc()
+        return intercept
+    
+    def propagate_ray(self, ray):
+        intercept = self.intercept(ray)
+        if intercept is None:
+            return None
         
+        normal = np.array([0., 0., 1.])
+        refracted_direc = refract(ray.direc(), normal, self.__n_1, self.__n_2)
+        if refracted_direc is None:
+            return None
+        
+        ray.append(intercept, refracted_direc)        
+
 
 class OutputPlane(OpticalElement):
     def __init__(self, z_0: float):

@@ -2,6 +2,7 @@
 import matplotlib.pyplot as plt
 from .elements import SphericalRefraction, OutputPlane
 from .rays import Ray, RayBundle
+from .lenses import PlanoConvex
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 
@@ -49,9 +50,6 @@ def task8():
     ax.set_title('Ray Vertices Path')
 
     plt.show()
-    
-    
-        
     
 
 def task10():
@@ -265,7 +263,25 @@ def task15():
     Returns:
         tuple[Figure, float, Figure, float]: the spot plots and rms for plano-convex and convex-plano.
     """
-    return
+    
+    pc = PlanoConvex(z_0=100, curvature=-0.02, n_inside=1.5168, n_outside=1., thickness=5., aperture=50.)
+    focal_length_pc = pc.focal_point() + pc.z_0() + pc.thickness()
+    output_pc = OutputPlane(z_0=focal_length_pc)
+    
+    bundle_pc = RayBundle()
+    bundle_pc.propagate_bundle([pc, output_pc])
+    fig_pc = bundle_pc.spot_plot()
+    
+    
+    cp = PlanoConvex(z_0=100, curvature=0.02, n_inside=1.5168, n_outside=1., thickness=5., aperture=50.)
+    focal_length_cp = cp.focal_point() + cp.z_0() + cp.thickness()
+    output_cp = OutputPlane(z_0=focal_length_cp)
+    
+    bundle_cp = RayBundle()
+    bundle_cp.propagate_bundle([cp, output_cp])
+    fig_cp = bundle_cp.spot_plot()
+    
+    return [fig_pc, pc.focal_point(), fig_cp, cp.focal_point()]
 
 
 def task16():
@@ -283,7 +299,60 @@ def task16():
     Returns:
         tuple[Figure, float, float, float]: the plot, RMS for plano-convex, RMS for convex-plano, diffraction scale.
     """
-    return
+    wavelength = 588e-6  # mm
+
+    radius_arr = np.arange(0.1, 10.0, 0.1)
+
+    pc = PlanoConvex(z_0=100, curvature=-0.02, n_inside=1.5168, n_outside=1., thickness=5., aperture=50.)
+    focal_point_pc = pc.focal_point()
+    output_pc = OutputPlane(z_0 = focal_point_pc)
+    focal_length_pc = focal_point_pc - pc.z_0()
+
+    rms_arr_pc = []
+    for r in radius_arr:
+        bundle = RayBundle(rmax = r)
+        bundle.propagate_bundle([pc, output_pc])
+        rms_arr_pc.append(bundle.rms())
+
+    rms_arr_pc = np.array(rms_arr_pc)
+    diff_scale_arr_pc = wavelength * focal_length_pc / (2 * radius_arr)
+    mask = np.isclose(radius_arr, 3.5)
+    i = np.where(mask)[0]
+    
+    standard_diff = diff_scale_arr_pc[i][0]
+    
+    fig = plt.figure()
+    ax = fig.add_subplot()
+    
+    ax.plot(radius_arr, rms_arr_pc, label = 'RMS Spread', color = 'blue')
+    ax.plot(radius_arr, diff_scale_arr_pc, label = '∆x Scale', color = 'red')
+    ax.set_xlabel('Beam Radius')
+    ax.set_title('RMS vs Diffraction Scale')
+    ax.legend()
+    
+    
+    cp = PlanoConvex(z_0=100, curvature=0.02, n_inside=1.5168, n_outside=1., thickness=5., aperture=50.)
+    focal_point_cp = cp.focal_point()
+    output_cp = OutputPlane(z_0 = focal_point_cp)
+    focal_length_cp = focal_point_cp - cp.z_0()
+
+    rms_arr_cp = []
+    for r in radius_arr:
+        bundle = RayBundle(rmax = r)
+        bundle.propagate_bundle([cp, output_cp])
+        rms_arr_cp.append(bundle.rms())
+
+    rms_arr_cp = np.array(rms_arr_cp)
+    diff_scale_arr_cp = wavelength * focal_length_cp / (2 * radius_arr)
+    mask = np.isclose(radius_arr, 3.5)
+    i = np.where(mask)[0]
+    
+    standard_diff = diff_scale_arr_cp[i][0]
+    
+    ax.plot(radius_arr, rms_arr_cp, label = 'RMS Spread', color = 'blue')
+    ax.plot(radius_arr, diff_scale_arr_cp, label = '∆x Scale', color = 'red')
+
+    return [fig, rms_arr_pc[i][0], rms_arr_cp[i][0], standard_diff]
 
 
 def task17():
