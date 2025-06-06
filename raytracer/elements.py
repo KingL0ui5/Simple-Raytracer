@@ -5,6 +5,7 @@ L Liu 22/05
 import numpy as np
 from .rays import Ray
 from .physics import refract 
+import math
 
 class OpticalElement:
     def intercept(self, ray):
@@ -12,15 +13,18 @@ class OpticalElement:
         
     def propagate_ray(self, ray):
             raise NotImplementedError('propagate_ray() needs to be implemented in derived classes')
-        
-    def focal_point(self):
-            raise NotImplementedError('focal_point() needs to be implemented in derived classes')
             
 class SphericalRefraction(OpticalElement):
+    def __new__(cls, z_0, curvature, n_1, n_2, aperture):
+        if curvature == 0:
+            return PlaneRefraction(z_0 = z_0, n_1 = n_1, n_2 = n_2, aperture = aperture)
+        return super().__new__(cls)
+    
     def __init__(self, z_0: float, aperture: float, curvature: float, n_1: float, n_2: float):
         self.__z_0 = z_0
         self.__aperture = aperture
         self.__curvature = curvature
+        self.__curvature_mag = np.abs(curvature)
         self.__n_1 = n_1
         self.__n_2 = n_2
         
@@ -69,26 +73,27 @@ class SphericalRefraction(OpticalElement):
             return None
         return intercept
     
-    def propagate_ray(self, ray): # test 
+    def propagate_ray(self, ray):
         intercept = self.intercept(ray)
         if intercept is None:
             return None
         
-        if self.__curvature == 0:
-            normal = np.array([0., 0., 1.])
-        else:
-            R = 1. / self.__curvature
+        R = 1. / self.__curvature
+        if self.__curvature < 0:
+            normal = - (intercept - np.array([0., 0., self.__z_0 + R]))
+        else: 
             normal = intercept - np.array([0., 0., self.__z_0 + R])
-            normal /= np.linalg.norm(normal)
-        
-        refracted_direc = refract(ray.direc(), normal, self.__n_1, self.__n_2)
+        normal /= np.linalg.norm(normal)
+    
+        refracted_direc = refract(direc = ray.direc(), normal = normal, n_1 = self.__n_1, n_2 = self.__n_2)
         if refracted_direc is None:
             return None
         
-        ray.append(intercept, refracted_direc)     
+        ray.append(intercept, refracted_direc)
+        return ray  
         
     def focal_point(self) -> float:
-        R = 1. / self.__curvature
+        R = 1. / self.__curvature_mag
         z = self.__z_0 + (self.__n_2 * R) / (self.__n_2 - self.__n_1) # lensmakers formula
         return z
         
@@ -107,7 +112,7 @@ class SphericalRefraction(OpticalElement):
 
         Z = np.zeros_like(X) + self.__z_0
         if curvature != 0:
-            R = 1 / curvature
+            R = 1 / self.__curvature_mag
             Z[mask] += R - np.sqrt(R**2 - R2[mask])
         else:
             Z[mask] += 0  
@@ -149,13 +154,30 @@ class PlaneRefraction(OpticalElement):
         intercept = self.intercept(ray)
         if intercept is None:
             return None
-        
         normal = np.array([0., 0., 1.])
+        if np.dot(ray.direc(), normal) > 0:
+            normal = -normal
         refracted_direc = refract(ray.direc(), normal, self.__n_1, self.__n_2)
         if refracted_direc is None:
             return None
         
-        ray.append(intercept, refracted_direc)        
+        ray.append(intercept, refracted_direc)   
+        return ray     
+        
+    def focal_point(self) -> float:
+        return math.inf
+    
+    def plot_surface(self, ax, resolution=100):
+        r_max = self.__aperture / 2
+        x = np.linspace(-r_max, r_max, resolution)
+        y = np.linspace(-r_max, r_max, resolution)
+        X, Y = np.meshgrid(x, y)
+        Z = np.zeros_like(X) + self.__z_0
+
+        ax.plot_surface(X, Y, Z, alpha=0.5, color='cyan', rstride=1, cstride=1, linewidth=0)
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_zlabel('Z')
 
 
 class OutputPlane(OpticalElement):
@@ -175,3 +197,4 @@ class OutputPlane(OpticalElement):
     def propagate_ray(self, ray):
         intercept = self.intercept(ray)
         ray.append(intercept, ray.direc()) # unchanged direction
+        return ray 
