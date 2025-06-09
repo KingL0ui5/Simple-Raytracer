@@ -73,8 +73,10 @@ class RayBundle:
         
         self.__rays = []
         
-        for r, theta in rtrings(rmax, nrings, multi): # Generate concentric rings of rays
-            x = r * np.cos(theta)
+        # Generate concentric rings of rays
+        for r, theta in rtrings(rmax, nrings, multi): 
+            # Convert to cartesian
+            x = r * np.cos(theta) 
             y = r * np.sin(theta)
             
             pos = [x, y, 0.]
@@ -114,7 +116,7 @@ class RayBundle:
 
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
-        ax.set_zlabel('Z') 
+        ax.set_zlabel('Z')  # type: ignore
         ax.set_title('Ray Vertices Path')
     
         return fig

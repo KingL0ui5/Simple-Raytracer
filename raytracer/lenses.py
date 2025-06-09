@@ -199,6 +199,24 @@ class BiConvex(OpticalElement):
     def curvature2(self):
         return self.__curvature2
     
+    def propagate_ray(self, ray: Ray):
+        """
+        Propagate a ray through the lens by passing it through each surface.
+
+        Args:
+            ray (Ray): The ray to be propagated
+
+        Returns:
+            Ray: The propagated ray, or None if the ray is not propagated.
+        """
+        for surface in self.__surfaces:
+            next_ray = surface.propagate_ray(ray)
+            if next_ray is None:
+                return None
+            ray = next_ray
+        return ray
+    
+    
     # def optical_power(self) -> float:
     #     D = (self.n_inside() / self.n_outside()) * (self.curvature1() - self.curvature2())
     #     return D 

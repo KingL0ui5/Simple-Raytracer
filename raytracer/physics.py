@@ -5,7 +5,20 @@ L Liu 23/05
 import numpy as np
 from .helpers import Utils as hlp 
         
-def refract(direc, normal, n_1, n_2): # test
+def refract(direc: np.ndarray, normal: np.ndarray, n_1: float, n_2: float):
+    """
+    Uses Snells Law to refract a light ray through a surface given the direction of the ray and the normal vector of the surface.
+
+    Args:
+        direc (np.ndarray): direction of incident ray
+        normal (np.ndarray): direction of normal vector
+        n_1 (float): refractive index of initial medium
+        n_2 (float): refractive index of new medium
+
+    Returns:
+        array: the refracted direction of the ray.
+    """
+    # Validations
     hlp.validate_vector(direc, "Direc")
     hlp.validate_vector(normal, "Normal")
     direc = hlp.normalise_vector(direc)
@@ -16,13 +29,12 @@ def refract(direc, normal, n_1, n_2): # test
     sin2_theta_2 = eta**2 * (1 - cos_theta_1**2)
 
     if sin2_theta_2 > 1.:
+        # Total Interal Reflection
         return None
-
-    cos_theta_2 = np.sqrt(1 - sin2_theta_2)
-    ref_direc = eta * direc + (eta * cos_theta_1 - cos_theta_2) * normal 
     
-    # ref_direc = (np.cos(theta_2 - theta_1) * normal) + (np.cos(theta_2) * direc)
-
+    cos_theta_2 = np.sqrt(1 - sin2_theta_2)
+    # Vector form of refraction formula
+    ref_direc = eta * direc + (eta * cos_theta_1 - cos_theta_2) * normal 
     hlp.normalise_vector(ref_direc)
     
     return ref_direc

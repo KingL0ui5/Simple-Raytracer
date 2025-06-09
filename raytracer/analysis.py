@@ -386,8 +386,15 @@ def task17():
     cp_rms = bundle_cp.rms()
     fig_cp = bundle_cp.spot_plot()
     
-    res = minimize(propagate_biconvex, x0=[0.02, 0.02], args=(output_plane), method='Nelder-Mead', options={'disp': True})
-    biconvex_lens = BiConvex(z_0=100., curvature1=res[0], curvature2=res[1], n_inside=1.5168, n_outside=1., thickness=5., aperture=50.)
+    def objective(curvatures, output_plane):
+        c1, c2 = curvatures
+        lens = BiConvex(z_0=100., curvature1=c1, curvature2=c2, n_inside=1.5168, n_outside=1., thickness=5., aperture=50.)
+        bundle = RayBundle(rmax=3.5)
+        bundle.propagate_bundle([lens, output_plane])
+        return bundle.rms()
+    
+    res = minimize(objective, x0=[0.02, 0.02], args=(output_plane,), method='Nelder-Mead', options={'disp': True})
+    biconvex_lens = BiConvex(z_0=100., curvature1=res.x[0], curvature2=res.x[1], n_inside=1.5168, n_outside=1., thickness=5., aperture=50.)
     
     bundle_bi = RayBundle(rmax=3.5)
     bundle_bi.propagate_bundle([biconvex_lens, output_plane])
@@ -395,21 +402,9 @@ def task17():
     fig_bi = bundle_bi.spot_plot()
     
     fig = plt.figure()
-    ax = fig.add_subplot()
-    
-    
-    
+    ax = fig.add_subplot()   
     
     return [fig, cp_rms, biconvex_rms]
-
-def propagate_biconvex(curvature1, curvature2, output_plane):
-    """
-    Helper function to propagate the biconvex lens through the optical system.
-    """
-    bundle = RayBundle(rmax=3.5)
-    Biconvex_lens = BiConvex(z_0=100., curvature1=curvature1, curvature2=curvature2, n_inside=1.5168, n_outside=1., thickness=5., aperture=50.)
-    bundle.propagate_bundle([Biconvex_lens, output_plane])
-    return bundle.rms()
 
 def task18():
     """
