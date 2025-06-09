@@ -1,9 +1,8 @@
 """Analysis module."""
 import matplotlib.pyplot as plt
-from .elements import SphericalRefraction, OutputPlane
-from .rays import Ray, RayBundle
-from .lenses import PlanoConvex, BiConvex
-from mpl_toolkits.mplot3d import Axes3D
+from raytracer.elements import SphericalRefraction, OutputPlane, SphericalReflection
+from raytracer.rays import Ray, RayBundle
+from raytracer.lenses import BiConvex, LensMaker
 import numpy as np
 from scipy.optimize import minimize 
 
@@ -47,7 +46,7 @@ def task8():
 
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
-    ax.set_zlabel('Z')
+    ax.set_zlabel('Z') # type: ignore
     ax.set_title('Ray Vertices Path')
 
     plt.show()
@@ -97,7 +96,7 @@ def task10():
 
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
-    ax.set_zlabel('Z') 
+    ax.set_zlabel('Z') # type: ignore
     ax.set_title('Ray Vertices Path')
     
     return fig
@@ -145,7 +144,7 @@ def task11():
 
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
-    ax.set_zlabel('Z') 
+    ax.set_zlabel('Z') # type: ignore
     ax.set_title('Ray Vertices Path')
     
     return [fig, focal_point]
@@ -265,7 +264,7 @@ def task15():
         tuple[Figure, float, Figure, float]: the spot plots and rms for plano-convex and convex-plano.
     """
     
-    pc = PlanoConvex(z_0=100, curvature1=0., curvature2=-0.02, n_inside=1.5168, n_outside=1., thickness=5., aperture=50.)
+    pc = LensMaker(z_0=100, curvature1=0., curvature2=-0.02, n_inside=1.5168, n_outside=1., thickness=5., aperture=50.)
     focal_length_pc = pc.focal_point() + pc.z_0() + pc.thickness()
     output_pc = OutputPlane(z_0=focal_length_pc)
     
@@ -274,7 +273,7 @@ def task15():
     fig_pc = bundle_pc.spot_plot()
     
     
-    cp = PlanoConvex(z_0=100, curvature1=0.02, curvature2=0., n_inside=1.5168, n_outside=1., thickness=5., aperture=50.)
+    cp = LensMaker(z_0=100, curvature1=0.02, curvature2=0., n_inside=1.5168, n_outside=1., thickness=5., aperture=50.)
     focal_length_cp = cp.focal_point() + cp.z_0() + cp.thickness()
     output_cp = OutputPlane(z_0=focal_length_cp)
     
@@ -304,10 +303,10 @@ def task16():
 
     radius_arr = np.arange(0.1, 10.0, 0.1)
 
-    pc = PlanoConvex(z_0=100., curvature1=0., curvature2=-0.02, n_inside=1.5168, n_outside=1., thickness=5., aperture=50.)
+    pc = LensMaker(z_0=100., curvature1=0., curvature2=-0.02, n_inside=1.5168, n_outside=1., thickness=5., aperture=50.)
     focal_point_pc = pc.focal_point()
     output_pc = OutputPlane(z_0 = focal_point_pc)
-    focal_length_pc = focal_point_pc - pc.z_0()
+    focal_length_pc = pc.focal_length()
 
     rms_arr_pc = []
     for r in radius_arr:
@@ -332,10 +331,11 @@ def task16():
     ax.legend()
     
     
-    cp = PlanoConvex(z_0=100., curvature1=0.02, curvature2=0., n_inside=1.5168, n_outside=1., thickness=5., aperture=50.)
+    cp = LensMaker(z_0=100., curvature1=0.02, curvature2=0., n_inside=1.5168, n_outside=1., thickness=5., aperture=50.)
     focal_point_cp = cp.focal_point()
     output_cp = OutputPlane(z_0 = focal_point_cp)
-    focal_length_cp = focal_point_cp - cp.z_0()
+    focal_length_cp = cp.focal_length()
+
 
     rms_arr_cp = []
     for r in radius_arr:
@@ -345,10 +345,8 @@ def task16():
 
     rms_arr_cp = np.array(rms_arr_cp)
     diff_scale_arr_cp = wavelength * focal_length_cp / (2 * radius_arr)
-    mask = np.isclose(radius_arr, 3.5)
-    i = np.where(mask)[0]
     
-    standard_diff_cp = diff_scale_arr_cp[i][0]
+    diff35 = wavelength * focal_length_cp / (2 * 3.5)
     
     ax.plot(radius_arr, rms_arr_cp, label = 'RMS Spread', color = 'blue')
     ax.plot(radius_arr, diff_scale_arr_cp, label = '∆x Scale', color = 'red')
@@ -359,7 +357,7 @@ def task16():
     fig1 = bundle_cp.track_plot()
     cp.plot_lens(ax = fig1.axes[0])\
 
-    return [fig, rms_arr_pc[i][0], rms_arr_cp[i][0]]
+    return [fig, rms_arr_pc[i][0], rms_arr_cp[i][0], diff35]
 
 
 def task17():
@@ -377,34 +375,37 @@ def task17():
     Returns:
         tuple[Figure, float, float]: The combined spot plot, RMS for the PC lens, RMS for the BiConvex lens
     """
-    cp = PlanoConvex(z_0=100., curvature1=0.02, curvature2=0., n_inside=1.5168, n_outside=1., thickness=5., aperture=50.)
-    focal_point = cp.focal_point()
-    output_plane = OutputPlane(z_0=focal_point)
+    bundle_cp = RayBundle()
     
-    bundle_cp = RayBundle(rmax=3.5)
-    bundle_cp.propagate_bundle([cp, output_plane])
-    cp_rms = bundle_cp.rms()
-    fig_cp = bundle_cp.spot_plot()
+    cpl = LensMaker(z_0=100., curvature1=0.02, curvature2=0., n_inside=1.5168, n_outside=1., thickness=5., aperture=50.)
+    cpl_foc = cpl.focal_point()
+    output_plane = OutputPlane(cpl_foc)
+    bundle_cp.propagate_bundle([cpl, output_plane])
     
-    def objective(curvatures, output_plane):
+    def objective(curvatures):
         c1, c2 = curvatures
         lens = BiConvex(z_0=100., curvature1=c1, curvature2=c2, n_inside=1.5168, n_outside=1., thickness=5., aperture=50.)
-        bundle = RayBundle(rmax=3.5)
+        bundle = RayBundle()
         bundle.propagate_bundle([lens, output_plane])
         return bundle.rms()
     
-    res = minimize(objective, x0=[0.02, 0.02], args=(output_plane,), method='Nelder-Mead', options={'disp': True})
+    res = minimize(objective, x0=[0.0146, -0.00563], options={'maxiter': 100000000000000000000, 'disp': False})
     biconvex_lens = BiConvex(z_0=100., curvature1=res.x[0], curvature2=res.x[1], n_inside=1.5168, n_outside=1., thickness=5., aperture=50.)
-    
+
     bundle_bi = RayBundle(rmax=3.5)
     bundle_bi.propagate_bundle([biconvex_lens, output_plane])
-    biconvex_rms = bundle_bi.rms()
-    fig_bi = bundle_bi.spot_plot()
     
     fig = plt.figure()
-    ax = fig.add_subplot()   
+    ax = fig.add_subplot()
+
+    bundle_bi.spot_plot(ax)
+    bundle_cp.spot_plot(ax)
+    plt.xlabel('x position (mm)')
+    plt.ylabel('y position (mm)')
+    plt.title('Spot Plot')
+    plt.grid(True)
     
-    return [fig, cp_rms, biconvex_rms]
+    return [fig, bundle_cp.rms(), bundle_bi.rms()]
 
 def task18():
     """
@@ -420,7 +421,13 @@ def task18():
         tuple[Figure, float]: The track plot and the focal point.
 
     """
-    return
+    sph_refl = SphericalReflection(z_0=100., aperture=6., curvature=-0.02)
+    output = OutputPlane(z_0=50)
+    bundle = RayBundle(rmax=5)
+    bundle.propagate_bundle([sph_refl, output])
+    
+
+    return [bundle.track_plot(), sph_refl.focal_point()]
 
 
 if __name__ == "__main__":
@@ -453,6 +460,6 @@ if __name__ == "__main__":
     # FIG17, CP_RMS, BICONVEX_RMS = task17()
 
     # Run task 18 function
-    # FIG18, FOCAL_POINT = task18()
+    FIG18, FOCAL_POINT = task18()
 
     plt.show()

@@ -2,8 +2,8 @@
 A module to store the Ray class to describe the rays in the system. 
 Created L Liu 19/05
 """
-from .helpers import Utils as hlp
-from .genpolar import rtrings
+from raytracer.helpers import Utils as hlp
+from raytracer.genpolar import rtrings
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -134,7 +134,7 @@ class RayBundle:
         return rms
 
 
-    def spot_plot(self):
+    def spot_plot(self, fig=None):
         """
         Create a 2D spot plot of the positions of the rays in the bundle projected onto the XY plane.
 
@@ -144,14 +144,16 @@ class RayBundle:
         x = [ray.pos()[0] for ray in self.__rays]
         y = [ray.pos()[1] for ray in self.__rays]
 
-
-        fig = plt.figure()
-        ax = fig.add_subplot()
-        ax.scatter(x, y, s=10, color='blue')
-        ax.set_xlabel('x position (mm)')
-        ax.set_ylabel('y position (mm)')
-        ax.set_title('Spot Plot')
-        ax.grid(True)
+        if fig is None:
+            fig = plt.figure()
+            ax = fig.add_subplot()
+            ax.scatter(x, y, s=10, color='blue')
+            ax.set_xlabel('x position (mm)')
+            ax.set_ylabel('y position (mm)')
+            ax.set_title('Spot Plot')
+            ax.grid(True)
+        else:
+            fig = fig.scatter(x, y, s=10, color='blue')
         return fig
             
         

@@ -3,7 +3,7 @@ A module for refractive physics calculations using snell's law.
 L Liu 23/05
 """
 import numpy as np
-from .helpers import Utils as hlp 
+from raytracer.helpers import Utils as hlp 
         
 def refract(direc: np.ndarray, normal: np.ndarray, n_1: float, n_2: float):
     """
@@ -35,6 +35,29 @@ def refract(direc: np.ndarray, normal: np.ndarray, n_1: float, n_2: float):
     cos_theta_2 = np.sqrt(1 - sin2_theta_2)
     # Vector form of refraction formula
     ref_direc = eta * direc + (eta * cos_theta_1 - cos_theta_2) * normal 
+    hlp.normalise_vector(ref_direc)
+    
+    return ref_direc
+
+def reflect(direc: np.ndarray, normal: np.ndarray):
+    """
+    Reflects a light ray off a surface given the direction of the ray and the normal vector of the surface.
+
+    Args:
+        direc (np.ndarray): direction of incident ray
+        normal (np.ndarray): direction of normal vector
+
+    Returns:
+        array: the reflected direction of the ray.
+    """
+    # Validations
+    hlp.validate_vector(direc, "Direc")
+    hlp.validate_vector(normal, "Normal")
+    direc = hlp.normalise_vector(direc)
+    normal = hlp.normalise_vector(normal)
+
+    # Vector form of reflection formula
+    ref_direc = direc - 2 * np.dot(direc, normal) * normal
     hlp.normalise_vector(ref_direc)
     
     return ref_direc

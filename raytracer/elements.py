@@ -3,8 +3,8 @@ This module contains the optical elements of the system.
 L Liu 22/05
 """
 import numpy as np
-from .rays import Ray
-from .physics import refract 
+from raytracer.rays import Ray
+from raytracer.physics import refract, reflect
 import math
 
 class OpticalElement:
@@ -17,32 +17,9 @@ class OpticalElement:
         
     def propagate_ray(self, ray):
             raise NotImplementedError('propagate_ray() needs to be implemented in derived classes')
-            
-class SphericalRefraction(OpticalElement):
-    """
-    A spherically refracting optical element (inheriting from OpticalElement)
-    """
-    def __new__(cls, z_0: float, curvature: float, n_1: float, n_2: float, aperture: float):
-        """
-        Creates a new instance of the refractor depending on the curvature value. If the curvature is zero, a 
-        PlaneRefractor is created.
 
-        Args:
-            z_0 (float): position of surface along the optical (z-axis).
-            curvature (float): the curvature of the surface - for spherical refractor, curvature = 1/R 
-                where R is the radius of curvature.
-            n_1 (float): Refractive index of media before surface.
-            n_2 (float): Refractive index of media behind surface.
-            aperture (float): The circular aperture of the surface.
-
-        Returns:
-            Creates either a PlaneRefraction surface or calls constructor.
-        """
-        if curvature == 0:
-            return PlaneRefraction(z_0 = z_0, n_1 = n_1, n_2 = n_2, aperture = aperture)
-        return super().__new__(cls)
-    
-    def __init__(self, z_0: float, aperture: float, curvature: float, n_1: float, n_2: float):
+class SphericalIntercept(OpticalElement):
+    def __init__(self, z_0: float, aperture: float, curvature: float):
         """
         Constructor for SphericalRefraction class.
 
@@ -54,30 +31,12 @@ class SphericalRefraction(OpticalElement):
             n_2 (float): Refractive index of media behind surface.
             aperture (float): The circular aperture of the surface.
         """
-        self.__z_0 = z_0
-        self.__aperture = aperture
-        self.__curvature = curvature
-        self.__curvature_mag = np.abs(curvature)
-        self.__n_1 = n_1
-        self.__n_2 = n_2
-        
-    # Getters for the properties
-    def z_0(self):
-        return self.__z_0
-    
-    def aperture(self):
-        return self.__aperture  
-        
-    def curvature(self):
-        return self.__curvature
-    
-    def n_1(self):
-        return self.__n_1
-    
-    def n_2(self):  
-        return self.__n_2
-    
-    def intercept(self, ray):        
+        self._z_0 = z_0
+        self._aperture = aperture
+        self._curvature = curvature
+        self._curvature_mag = np.abs(curvature)
+
+    def intercept(self, ray) -> np.ndarray | None:   
         """
         Finds the point of intercection between the incident ray and the surface
 
@@ -87,10 +46,12 @@ class SphericalRefraction(OpticalElement):
         Returns:
             array/None: The point of intersection, or None if the ray does not intersect the surface.
         """
-        R = 1. / self.__curvature
+        pos = ray.pos()
+        direc = ray.direc()
+        R = 1. / self._curvature
         # Vector between the ray position and the optical axis intercept of the surface
-        r = ray.pos() - np.array([0., 0., self.__z_0 + R]) 
-        b = np.dot(ray.direc(), r)
+        r = pos - np.array([0., 0., self._z_0 + R]) 
+        b = np.dot(direc, r)
         
         # Discriminant
         disc = b**2 - (np.dot(r, r) - R**2)
@@ -113,14 +74,40 @@ class SphericalRefraction(OpticalElement):
                 
         d = d[0]
         # Finds intercept using vector straight line formula
-        intercept = ray.pos() + d * ray.direc()
+        intercept = pos + d * direc
         
-        if intercept[0]**2 + intercept[1]**2 > (self.__aperture)**2:
+        if intercept[0]**2 + intercept[1]**2 > (self._aperture)**2:
             # If intercept is beyond aperture
             return None
         return intercept
     
-    def propagate_ray(self, ray):
+class SphericalRefraction(SphericalIntercept):
+    """
+    A spherically refracting optical element (inheriting from OpticalElement)
+    """
+    def __init__(self, z_0: float, aperture: float, curvature: float, n_1: float, n_2: float):
+        super().__init__(z_0=z_0, aperture=aperture,curvature=curvature)
+        self.__n_1 = n_1
+        self.__n_2 = n_2
+    
+    # Getters for the properties
+    def z_0(self) -> float:
+        return self._z_0
+    
+    def aperture(self) -> float:
+        return self._aperture  
+        
+    def curvature(self) -> float:
+        return self._curvature
+    
+    def n_1(self) -> float:
+        return self.__n_1
+    
+    def n_2(self) -> float:  
+        return self.__n_2
+
+    
+    def propagate_ray(self, ray) -> np.ndarray | None:
         """
         Propagates the ray through the refracting surface making use of the physics.py module.
 
@@ -135,12 +122,12 @@ class SphericalRefraction(OpticalElement):
             # no intersection = no propagation
             return None
         
-        R = 1. / self.__curvature
+        R = 1. / self._curvature
         # The normal vector depends on the orientation of the surface
-        if self.__curvature < 0:
-            normal = - (intercept - np.array([0., 0., self.__z_0 + R]))
+        if self._curvature < 0:
+            normal = - (intercept - np.array([0., 0., self._z_0 + R]))
         else: 
-            normal = intercept - np.array([0., 0., self.__z_0 + R])
+            normal = intercept - np.array([0., 0., self._z_0 + R])
         normal /= np.linalg.norm(normal)
     
         refracted_direc = refract(direc = ray.direc(), normal = normal, n_1 = self.__n_1, n_2 = self.__n_2)
@@ -158,8 +145,8 @@ class SphericalRefraction(OpticalElement):
         Returns:
             float: The focal point of the surface.
         """
-        R = 1. / self.__curvature_mag
-        z = self.__z_0 + (self.__n_2 * R) / (self.__n_2 - self.__n_1) # lensmakers formula
+        R = 1. / self._curvature_mag
+        z = self._z_0 + (self.__n_2 * R) / (self.__n_2 - self.__n_1) # lensmakers formula
         return z
         
     def plot_surface(self, ax, resolution=100):
@@ -170,8 +157,8 @@ class SphericalRefraction(OpticalElement):
             ax (Axes): The matplotlib axis object to plot to
             resolution (int, optional): Number of points included between the bounds of the surface. Defaults to 100.
         """
-        r_max = self.__aperture / 2
-        curvature = self.__curvature
+        r_max = self._aperture / 2
+        curvature = self._curvature
 
         x = np.linspace(-r_max, r_max, resolution)
         y = np.linspace(-r_max, r_max, resolution)
@@ -182,10 +169,10 @@ class SphericalRefraction(OpticalElement):
         mask = R2 <= r_max**2
 
         # At surface position
-        Z = np.zeros_like(X) + self.__z_0
+        Z = np.zeros_like(X) + self._z_0
         if curvature != 0:
             # Adjusting for curvature sag
-            R = 1 / self.__curvature_mag
+            R = 1 / self._curvature_mag
             Z[mask] += R - np.sqrt(R**2 - R2[mask])
         else:
             Z[mask] += 0  
@@ -196,8 +183,95 @@ class SphericalRefraction(OpticalElement):
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
         ax.set_zlabel('Z')
+        
+class SphericalReflection(SphericalIntercept):
+    """
+    A spherically reflecting optical element (inheriting from OpticalElement)
+    """
+    def __init__(self, z_0: float, curvature: float, aperture: float):
+        """
+        Constructor for SphericalReflection class.
+
+        Args:
+            z_0 (float): position of surface along the optical (z-axis).
+            curvature (float): the curvature of the surface - for spherical refractor, curvature = 1/R 
+                where R is the radius of curvature.
+            aperture (float): The circular aperture of the surface.
+        """
+        super().__init__(z_0=z_0, aperture=aperture, curvature=curvature)
+        
+        
+    def propagate_ray(self, ray) -> np.ndarray | None: 
+        """
+        Reflects the ray off the surface.
+
+        Args:
+            ray (Ray): The ray to be reflected
+
+        Returns:
+            Ray/None: The reflected Ray or None if there is no reflection.
+        """
+        intercept = self.intercept(ray)
+        if intercept is None:
+            # no intersection = no reflection
+            return None
+        
+        R = 1. / self._curvature
+        # The normal vector depends on the orientation of the surface
+        if self._curvature < 0:
+            normal = - (intercept - np.array([0., 0., self._z_0 + R]))
+        else: 
+            normal = intercept - np.array([0., 0., self._z_0 + R])
+        normal /= np.linalg.norm(normal)
     
-class PlaneRefraction(OpticalElement):
+        reflected_direc = reflect(direc = ray.direc(), normal = normal)
+        if reflected_direc is None:
+            # no reflection
+            return None
+        
+        ray.append(intercept, reflected_direc)
+        return ray
+    
+    def focal_point(self) -> float:
+        """
+        Finds the focal point of the surface along the optical axis
+
+        Returns:
+            float: The focal point of the surface.
+        """
+        R = 1. / np.abs(self._curvature)
+        return self._z_0 - R/2 
+    
+
+class PlaneIntercept(OpticalElement):
+    def __init__(self, z_0: float):
+        self._z_0 = z_0
+        
+    def z_0(self) -> float:
+        return self._z_0
+    
+    def intercept(self, ray) -> np.ndarray | None:
+        """
+        Finds the intersection of a ray with the suraface.
+
+        Args:
+            ray (Ray): The ray intersecting the surface.
+
+        Returns:
+            array/None: The intersection point where the ray meets the surface or None if there is no intersection.
+        """
+        direc = ray.direc()
+        pos = ray.pos()
+        if ray.direc()[2] == 0: 
+            # Parallel Ray
+            return None
+        k = (self._z_0 - pos[2]) / direc[2]
+        # finds the intersection using vector straight line formulae
+        intercept = pos + k * direc       
+        return intercept
+      
+    
+class PlaneRefraction(PlaneIntercept):
     """
     Creates a planar refracting surface, inheriting from OpticalElement
     """
@@ -211,48 +285,34 @@ class PlaneRefraction(OpticalElement):
             n_1 (float): Refractive index of media before surface.
             n_2 (float): Refractive index of media behind surface.
         """
-        self.__z_0 = z_0
+        super().__init__(z_0=z_0)
         self.__n_1 = n_1
         self.__n_2 = n_2
         self.__aperture = aperture
         
     # Getters for the properties
-    def z_0(self):
-        return self.__z_0
-    
-    def n_1(self):
+    def n_1(self) -> float:
         return self.__n_1
     
-    def n_2(self):
+    def n_2(self) -> float:
         return self.__n_2
     
-    def aperture(self):
+    def aperture(self) -> float:
         return self.__aperture
     
-    def intercept(self, ray):
-        """
-        Finds the intersection of a ray with the suraface.
-
-        Args:
-            ray (Ray): The ray intersecting the surface.
-
-        Returns:
-            array/None: The intersection point where the ray meets the surface or None if there is no intersection.
-        """
-        if ray.direc()[2] == 0: 
-            # Parallel Ray
+    def intercept(self, ray) -> np.ndarray | None:
+        intercept = super().intercept(ray)
+        if intercept is None:
+            # From cases before
             return None
-        k = (self.__z_0 - ray.pos()[2]) / ray.direc()[2]
-        # finds the intersection using vector straight line formulae
-        intercept = ray.pos() + k * ray.direc()
         
         if intercept[0]**2 + intercept[1]**2 > (self.__aperture/2)**2: 
             # Check if intersection is within aperture.
             return None
         
         return intercept
-    
-    def propagate_ray(self, ray):
+        
+    def propagate_ray(self, ray) -> Ray | None:
         """
         Propagates a ray incident to the surface.
 
@@ -276,8 +336,9 @@ class PlaneRefraction(OpticalElement):
             return None
         
         ray.append(intercept, refracted_direc)   
-        return ray     
+        return ray   
         
+    
     def focal_point(self) -> float:
         """
         Returns the focal point of the planar surface which is infinite
@@ -298,7 +359,7 @@ class PlaneRefraction(OpticalElement):
         X, Y = np.meshgrid(x, y)
         
         # at optical axis position
-        Z = np.zeros_like(X) + self.__z_0
+        Z = np.zeros_like(X) + self._z_0
 
         ax.plot_surface(X, Y, Z, alpha=0.5, color='cyan', rstride=1, cstride=1, linewidth=0)
         ax.set_xlabel('X')
@@ -306,7 +367,7 @@ class PlaneRefraction(OpticalElement):
         ax.set_zlabel('Z')
 
 
-class OutputPlane(OpticalElement):
+class OutputPlane(PlaneIntercept):
     """
     An optical element that represents an invisible barrier where the optical rays terminate.
     """
@@ -317,31 +378,10 @@ class OutputPlane(OpticalElement):
         Args:
             z_0 (float): The intersection of the plane with the optical z-axis.
         """
-        self.__z_0 = z_0
+        super().__init__(z_0=z_0)
     
-    # Getter for properties
-    def z_0(self):
-        return self.__z_0
     
-    def intercept(self, ray):
-        """
-        Finds the intersection point of any ray with the surface
-
-        Args:
-            ray (Ray): Incident ray
-
-        Returns:
-            array/None: The point of intersection between the ray and the surface, or None if there is no intersection
-        """
-        if ray.direc()[2] == 0: 
-            # Parallel ray
-            return None
-        k = (self.__z_0 - ray.pos()[2]) / ray.direc()[2]
-        # Finds intersection point using straight line vector formula
-        intercept = ray.pos() + k * ray.direc()
-        return intercept
-    
-    def propagate_ray(self, ray):
+    def propagate_ray(self, ray) -> np.ndarray | None:
         """
         Propagates the ray through the surface.
 
@@ -352,7 +392,9 @@ class OutputPlane(OpticalElement):
             Ray/None: propagated ray or none if the ray does not intersect.
         """
         intercept = self.intercept(ray)
-        if intercept == None:
+        if intercept is None:
             return None
         ray.append(intercept, ray.direc()) # unchanged direction - not refractor
         return ray 
+    
+
