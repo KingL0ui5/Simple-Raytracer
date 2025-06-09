@@ -54,10 +54,7 @@ class Ray:
         return self.__vertices
     
 class RayBundle:
-    """
-    A bundle of rays arranged in concentric rings using the genpolar module.
-    """
-    def __init__(self, rmax: float = 5., nrings: int = 5, multi: int = 6):
+    def __init__(self, rmax: float = 5., nrings: int = 5, multi: int = 6, direction: list = [0, 0, 1]):
         """
         Constructor for the RayBundle class.
 
@@ -80,11 +77,14 @@ class RayBundle:
             y = r * np.sin(theta)
             
             pos = [x, y, 0.]
-            direc = [0, 0, 1]
 
-            ray = Ray(pos=pos, direc=direc)
+            ray = Ray(pos=pos, direc=direction)
             self.__rays.append(ray)
-        
+    
+    # getter for all rays in the bundle
+    def rays(self):
+        return self.__rays
+    
     def propagate_bundle(self, elements):
         """
         Propagate the bundle of rays through a list of optical elements.
@@ -155,7 +155,43 @@ class RayBundle:
         else:
             fig = fig.scatter(x, y, s=10, color='blue')
         return fig
-            
+    
+    
+
+class DivergingRayBundle:
+    """
+    A bundle of rays arranged in concentric circles with different directions (composed of RayBundle)
+    """
+    def __init__(self, spread: float = 1., nrings: int = 2, multi: int = 6, maxangle: float = np.pi/2, nangle: int = 5):
+        """
+        Args:
+            spread (float, optional): distance between each ring, defaults to 1.
+            nrings (int, optional): number of rings per angle step, defaults to 2.
+            multi (int, optional): rays per ring, defaults to 6.
+            maxangle (float, optional): maximum divergence angle (rad), defaults to pi/2.
+            nangle (int, optional): number of polar angle steps from 0 to maxangle, defaults to 5.
+        """
+        rmax = spread * nrings
+        self.__rays = []
+        alphas = np.linspace(0, maxangle, nangle)
+        self.__angles = alphas
+        
+        phis = np.linspace(0, 2 * np.pi, multi, endpoint=False)
+        for alpha in alphas:
+            for phi in phis:
+                direction = [
+                    np.sin(alpha) * np.cos(phi),
+                    np.sin(alpha) * np.sin(phi),
+                    np.cos(alpha)
+                ]
+                self.__rays.append(RayBundle(rmax, nrings, multi, direction))
+                
+    # getter methods for properties
+    def rays(self):
+        return self.__rays
+    
+    def angles(self):
+        return self.__angles
         
             
     

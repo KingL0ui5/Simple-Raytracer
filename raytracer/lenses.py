@@ -3,7 +3,6 @@ A module to explore lenses in the raytracer setup
 L Liu 25/05/2025
 """
 
-from abc import ABC, abstractmethod
 import numpy as np
 
 from raytracer.elements import SphericalRefraction, PlaneRefraction, OpticalElement
@@ -295,18 +294,34 @@ class BiConvex(Lens):
         self._surfaces = [front, back]   
         
     def focal_length(self):
-        N = self._n_inside / self._n_outside
-        D = (N - 1) * (self.__curvature1 - self.__curvature2)
-        return 1. / D
+        """
+        Calculate the focal length of the lens.
+
+        Returns:
+            float: the focal length of the lens.
+        """
+        N  = self._n_inside / self._n_outside
+        C1 = self.__curvature1
+        C2 = self.__curvature2
+        d  = self._thickness
+
+        power = (N - 1) * (C1 - C2 + ((N - 1) * d * C1 * C2) / N)
+        return 1. / power
 
     def focal_point(self) -> float:
         """
-        Calculate the focal point of the lens based on its optical power, thickness and position.
+        Calculate the focal point of the lens based on its focal length, thickness and position.
 
         Returns:
             Focal Point (float): The focal point of the lens.
         """
-        return self._z_0 + self.focal_length() + self._thickness
+        f  = self.focal_length()
+        N  = self._n_inside / self._n_outside
+        C2 = self.__curvature2
+        d  = self._thickness
+
+        bfd = f * (1 - ((N - 1) * C2 * d) / N)
+        return self._z_0 + bfd
     
     # Getters for curvature attributes
     def curvature1(self):

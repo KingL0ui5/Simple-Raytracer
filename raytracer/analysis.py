@@ -47,7 +47,7 @@ def task8():
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('Z') # type: ignore
-    ax.set_title('Ray Vertices Path')
+    ax.set_title('Ray Vertices Path task 8')
 
     plt.show()
     
@@ -97,7 +97,7 @@ def task10():
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('Z') # type: ignore
-    ax.set_title('Ray Vertices Path')
+    ax.set_title('Ray Vertices Path task 10')
     
     return fig
 
@@ -145,7 +145,7 @@ def task11():
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('Z') # type: ignore
-    ax.set_title('Ray Vertices Path')
+    ax.set_title('Ray Vertices Path task 11')
     
     return [fig, focal_point]
 
@@ -170,6 +170,7 @@ def task12():
     
     fig = bundle.track_plot()    
     ax = fig.axes[0]
+    ax.set_title("Task 12 trackplot")
     refractor.plot_surface(ax)  
     return fig
 
@@ -194,6 +195,7 @@ def task13():
     
     bundle.propagate_bundle([refractor, output])
     fig = bundle.spot_plot()
+    fig.axes[0].set_title("task 13 spot plot")
     rms = bundle.rms()
     
     return [fig, rms]
@@ -241,7 +243,7 @@ def task14():
     ax.plot(radius_arr, rms_arr, label = 'RMS Spread', color = 'blue')
     ax.plot(radius_arr, diff_scale_arr, label = '∆x Scale', color = 'red')
     ax.set_xlabel('Beam Radius')
-    ax.set_title('RMS vs Diffraction Scale')
+    ax.set_title('RMS vs Diffraction Scale task 14')
     ax.legend()
 
     return [fig, standard_rms, standard_diff]
@@ -271,6 +273,7 @@ def task15():
     bundle_pc = RayBundle() 
     bundle_pc.propagate_bundle([pc, output_pc])
     fig_pc = bundle_pc.spot_plot()
+    fig_pc.axes[0].set_title('Task 15 pc spotplot')
     
     
     cp = LensMaker(z_0=100, curvature1=0.02, curvature2=0., n_inside=1.5168, n_outside=1., thickness=5., aperture=50.)
@@ -280,6 +283,7 @@ def task15():
     bundle_cp = RayBundle()
     bundle_cp.propagate_bundle([cp, output_cp])
     fig_cp = bundle_cp.spot_plot()
+    fig_cp.axes[0].set_title('Task 15 cp spotplot')
     
     return [fig_pc, pc.focal_point(), fig_cp, cp.focal_point()]
 
@@ -327,7 +331,7 @@ def task16():
     ax.plot(radius_arr, rms_arr_pc, label = 'RMS Spread', color = 'blue')
     ax.plot(radius_arr, diff_scale_arr_pc, label = '∆x Scale', color = 'red')
     ax.set_xlabel('Beam Radius')
-    ax.set_title('RMS vs Diffraction Scale')
+    ax.set_title('RMS vs Diffraction Scale (Task 16)')
     ax.legend()
     
     
@@ -353,9 +357,11 @@ def task16():
     
     fig = bundle_pc.track_plot() 
     pc.plot_lens(ax = fig.axes[0])
+    fig.axes[0].set_title("task 16")
     
     fig1 = bundle_cp.track_plot()
-    cp.plot_lens(ax = fig1.axes[0])\
+    cp.plot_lens(ax = fig1.axes[0])
+    fig.axes[0].set_title("task 16")
 
     return [fig, rms_arr_pc[i][0], rms_arr_cp[i][0], diff35]
 
@@ -436,28 +442,28 @@ if __name__ == "__main__":
     task8()
 
     # Run task 10 function
-    # FIG10 = task10()
+    FIG10 = task10()
 
     # Run task 11 function
-    # FIG11, FOCAL_POINT = task11()
+    FIG11, FOCAL_POINT = task11()
 
     # Run task 12 function
-    # FIG12 = task12()
+    FIG12 = task12()
 
     # Run task 13 function
-    # FIG13, TASK13_RMS = task13()
+    FIG13, TASK13_RMS = task13()
 
     # Run task 14 function
-    # FIG14, TASK14_RMS, TASK14_DIFF_SCALE = task14()
+    FIG14, TASK14_RMS, TASK14_DIFF_SCALE = task14()
 
     # Run task 15 function
-    # FIG15_PC, FOCAL_POINT_PC, FIG15_CP, FOCAL_POINT_CP = task15()
+    FIG15_PC, FOCAL_POINT_PC, FIG15_CP, FOCAL_POINT_CP = task15()
 
     # Run task 16 function
-    # FIG16, PC_RMS, CP_RMS, TASK16_DIFF_SCALE = task16()
+    FIG16, PC_RMS, CP_RMS, TASK16_DIFF_SCALE = task16()
 
     # Run task 17 function
-    # FIG17, CP_RMS, BICONVEX_RMS = task17()
+    FIG17, CP_RMS, BICONVEX_RMS = task17()
 
     # Run task 18 function
     FIG18, FOCAL_POINT = task18()

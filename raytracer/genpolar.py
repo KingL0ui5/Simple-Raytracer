@@ -24,4 +24,5 @@ def rtrings(rmax=5., nrings=5, multi=6):
         for point in range(npoints):
             theta = ((np.pi * 2)/npoints) * point
             yield [r,theta]
+            
         
