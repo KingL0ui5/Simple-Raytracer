@@ -144,7 +144,8 @@ class PlanoConvex(Lens):
         super().__init__(z_0=z_0, n_inside=n_inside, n_outside=n_outside, thickness=thickness, aperture=aperture)
         self.__curvature = curvature
         self.__radius = 1. / curvature
-
+        R = 1 / curvature
+        
         front = PlaneRefraction(
             z_0=z_0,
             n_1=n_outside,

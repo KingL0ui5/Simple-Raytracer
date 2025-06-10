@@ -168,10 +168,17 @@ def task12():
     
     bundle.propagate_bundle([refractor, output])
     
-    fig = bundle.track_plot()    
-    ax = fig.axes[0]
-    ax.set_title("Task 12 trackplot")
-    refractor.plot_surface(ax)  
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d') 
+    bundle.track_plot(ax)
+
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')  # type: ignore
+
+    ax.set_title('Ray Vertices Path task 12')  
+
+    refractor.plot_surface(ax)
     return fig
 
 
@@ -334,12 +341,10 @@ def task16():
     ax.set_title('RMS vs Diffraction Scale (Task 16)')
     ax.legend()
     
-    
     cp = LensMaker(z_0=100., curvature1=0.02, curvature2=0., n_inside=1.5168, n_outside=1., thickness=5., aperture=50.)
     focal_point_cp = cp.focal_point()
     output_cp = OutputPlane(z_0 = focal_point_cp)
     focal_length_cp = cp.focal_length()
-
 
     rms_arr_cp = []
     for r in radius_arr:
@@ -355,13 +360,24 @@ def task16():
     ax.plot(radius_arr, rms_arr_cp, label = 'RMS Spread', color = 'blue')
     ax.plot(radius_arr, diff_scale_arr_cp, label = '∆x Scale', color = 'red')
     
-    fig = bundle_pc.track_plot() 
-    pc.plot_lens(ax = fig.axes[0])
-    fig.axes[0].set_title("task 16")
+    fig1 = plt.figure()
+    ax1 = fig1.add_subplot(111, projection='3d') 
+    bundle_pc.track_plot(ax1) 
+    ax1.set_xlabel('X')
+    ax1.set_ylabel('Y')
+    ax1.set_zlabel('Z')  # type: ignore  
+    pc.plot_lens(ax = ax1)
+    ax1.set_title("task 16 pc trackplot")
     
-    fig1 = bundle_cp.track_plot()
-    cp.plot_lens(ax = fig1.axes[0])
-    fig.axes[0].set_title("task 16")
+    fig2 = plt.figure()
+    ax2 = fig2.add_subplot(111, projection='3d') 
+    bundle_pc.track_plot(ax2) 
+    ax2.set_xlabel('X')
+    ax2.set_ylabel('Y')
+    ax2.set_zlabel('Z')  # type: ignore  
+    cp.plot_lens(ax = ax2)
+    ax2.set_title("task 16 cp trackplot")
+    
 
     return [fig, rms_arr_pc[i][0], rms_arr_cp[i][0], diff35]
 
@@ -427,45 +443,55 @@ def task18():
         tuple[Figure, float]: The track plot and the focal point.
 
     """
-    sph_refl = SphericalReflection(z_0=100., aperture=6., curvature=-0.02)
-    output = OutputPlane(z_0=50)
+    sph_refl = SphericalReflection(z_0=50., aperture=30., curvature=-0.02)
+    output = OutputPlane(z_0=30)
     bundle = RayBundle(rmax=5)
     bundle.propagate_bundle([sph_refl, output])
     
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d') 
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')  # type: ignore  
+    
+    sph_refl.plot_surface(ax)
+    bundle.track_plot(ax)
+    ax.set_title('Ray Vertices Path task 18')
+    
 
-    return [bundle.track_plot(), sph_refl.focal_point()]
+    return [ax, sph_refl.focal_point()]
 
 
 if __name__ == "__main__":
 
     # Run task 8 function
-    task8()
+    # task8()
 
-    # Run task 10 function
-    FIG10 = task10()
+    # # Run task 10 function
+    # FIG10 = task10()
 
-    # Run task 11 function
-    FIG11, FOCAL_POINT = task11()
+    # # Run task 11 function
+    # FIG11, FOCAL_POINT = task11()
 
-    # Run task 12 function
-    FIG12 = task12()
+    # # Run task 12 function
+    # FIG12 = task12()
 
-    # Run task 13 function
-    FIG13, TASK13_RMS = task13()
+    # # Run task 13 function
+    # FIG13, TASK13_RMS = task13()
 
-    # Run task 14 function
-    FIG14, TASK14_RMS, TASK14_DIFF_SCALE = task14()
+    # # Run task 14 function
+    # FIG14, TASK14_RMS, TASK14_DIFF_SCALE = task14()
 
-    # Run task 15 function
-    FIG15_PC, FOCAL_POINT_PC, FIG15_CP, FOCAL_POINT_CP = task15()
+    # # Run task 15 function
+    # FIG15_PC, FOCAL_POINT_PC, FIG15_CP, FOCAL_POINT_CP = task15()
 
     # Run task 16 function
     FIG16, PC_RMS, CP_RMS, TASK16_DIFF_SCALE = task16()
 
-    # Run task 17 function
-    FIG17, CP_RMS, BICONVEX_RMS = task17()
+    # # Run task 17 function
+    # FIG17, CP_RMS, BICONVEX_RMS = task17()
 
-    # Run task 18 function
-    FIG18, FOCAL_POINT = task18()
+    # # Run task 18 function
+    # FIG18, FOCAL_POINT = task18()
 
     plt.show()

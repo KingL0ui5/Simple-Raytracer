@@ -58,6 +58,5 @@ def reflect(direc: np.ndarray, normal: np.ndarray):
 
     # Vector form of reflection formula
     ref_direc = direc - 2 * np.dot(direc, normal) * normal
-    hlp.normalise_vector(ref_direc)
-    
+    ref_direc = hlp.normalise_vector(ref_direc)
     return ref_direc

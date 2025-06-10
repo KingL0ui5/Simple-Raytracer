@@ -85,18 +85,19 @@ class RayBundle:
     def rays(self):
         return self.__rays
     
-    def propagate_bundle(self, elements):
+    def propagate_bundle(self, elements: list):
         """
         Propagate the bundle of rays through a list of optical elements.
 
         Args:
-            elements (OpticalElement): Elements through which the rays are propagated.
+            elements (list[OpticalElement]): Elements through which the rays are propagated.
         """
         for element in elements:
             for ray in self.__rays:
-                element.propagate_ray(ray)
+                ray = element.propagate_ray(ray)
+        return self
         
-    def track_plot(self):
+    def track_plot(self, ax):
         """
         Create a 3D plot of the vertices of all rays in the bundle.
         
@@ -110,16 +111,9 @@ class RayBundle:
         y = points[:, 1]
         z = points[:, 2]    
         
-        fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
         ax.plot(x, y, z, marker='o') 
-
-        ax.set_xlabel('X')
-        ax.set_ylabel('Y')
-        ax.set_zlabel('Z')  # type: ignore
-        ax.set_title('Ray Vertices Path')
     
-        return fig
+        return ax
         
     def rms(self):
         """
@@ -160,7 +154,7 @@ class RayBundle:
 
 class DivergingRayBundle:
     """
-    A bundle of rays arranged in concentric circles with different directions (composed of RayBundle)
+    A collection of bundles of rays arranged in concentric circles with different directions (composed of RayBundle)
     """
     def __init__(self, spread: float = 1., nrings: int = 2, multi: int = 6, maxangle: float = np.pi/2, nangle: int = 5):
         """
@@ -172,7 +166,7 @@ class DivergingRayBundle:
             nangle (int, optional): number of polar angle steps from 0 to maxangle, defaults to 5.
         """
         rmax = spread * nrings
-        self.__rays = []
+        self.__bundles = []
         alphas = np.linspace(0, maxangle, nangle)
         self.__angles = alphas
         
@@ -184,14 +178,37 @@ class DivergingRayBundle:
                     np.sin(alpha) * np.sin(phi),
                     np.cos(alpha)
                 ]
-                self.__rays.append(RayBundle(rmax, nrings, multi, direction))
+                self.__bundles.append(RayBundle(rmax, nrings, multi, direction))
                 
     # getter methods for properties
-    def rays(self):
-        return self.__rays
+    def bundles(self):
+        return self.__bundles
     
     def angles(self):
         return self.__angles
+    
+    def propagate_bundle(self, elements: list):
+        """
+        Propagates the ray bundles through a list of elements.
+
+        Args:
+            elements (list[OpticalElement]): The elements through which to propagate rays.
+        """
+        for bundle in self.__bundles:
+            bundle = bundle.propagate_bundle(elements)
+        return self
+            
+    def track_plot(self, ax):
+        """
+        Adds the track plot of each bundle in the diverging beam to the axis
+
+        Args:
+            ax (matplotlib ax): The axis to which each beam is added
+        """
+        for bundle in self.__bundles: 
+            bundle.track_plot(ax)
+        return ax
+            
         
             
     

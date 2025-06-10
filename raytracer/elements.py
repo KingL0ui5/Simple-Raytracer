@@ -81,6 +81,41 @@ class SphericalIntercept(OpticalElement):
             return None
         return intercept
     
+    def plot_surface(self, ax, resolution=100):
+        """
+        Plots the surface to the input axis.
+
+        Args:
+            ax (Axes): The matplotlib axis object to plot to
+            resolution (int, optional): Number of points included between the bounds of the surface. Defaults to 100.
+            
+        Returns: 
+            ax (Axes): The matplotlib axis object on which the surface is plotted
+        """
+        r_max = self._aperture / 2
+        curvature = self._curvature
+        R = 1. / curvature
+        x = np.linspace(-r_max, r_max, resolution)
+        y = np.linspace(-r_max, r_max, resolution)
+        X, Y = np.meshgrid(x, y)
+        R2 = X**2 + Y**2
+
+        # Points within aperture
+        mask = R2 <= r_max**2
+
+        # At surface position
+        Z = np.zeros_like(X) + self._z_0
+        
+        sag = R - np.sign(R) * np.sqrt(np.maximum(R**2 - R2, 0.0))
+        Z[mask] = self._z_0 + sag[mask]
+        Z[~mask] = np.nan
+
+        ax.plot_surface(X, Y, Z, alpha=0.5, color='cyan', rstride=1, cstride=1, linewidth=0)
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_zlabel('Z')
+        return ax 
+    
 class SphericalRefraction(SphericalIntercept):
     """
     A spherically refracting optical element (inheriting from OpticalElement)
@@ -149,41 +184,6 @@ class SphericalRefraction(SphericalIntercept):
         z = self._z_0 + (self.__n_2 * R) / (self.__n_2 - self.__n_1) # lensmakers formula
         return z
         
-    def plot_surface(self, ax, resolution=100):
-        """
-        Plots the surface to the input axis.
-
-        Args:
-            ax (Axes): The matplotlib axis object to plot to
-            resolution (int, optional): Number of points included between the bounds of the surface. Defaults to 100.
-        """
-        r_max = self._aperture / 2
-        curvature = self._curvature
-
-        x = np.linspace(-r_max, r_max, resolution)
-        y = np.linspace(-r_max, r_max, resolution)
-        X, Y = np.meshgrid(x, y)
-        R2 = X**2 + Y**2
-
-        # Points within aperture
-        mask = R2 <= r_max**2
-
-        # At surface position
-        Z = np.zeros_like(X) + self._z_0
-        if curvature != 0:
-            # Adjusting for curvature sag
-            R = 1 / self._curvature_mag
-            Z[mask] += R - np.sqrt(R**2 - R2[mask])
-        else:
-            Z[mask] += 0  
-
-        Z[~mask] = np.nan
-
-        ax.plot_surface(X, Y, Z, alpha=0.5, color='cyan', rstride=1, cstride=1, linewidth=0)
-        ax.set_xlabel('X')
-        ax.set_ylabel('Y')
-        ax.set_zlabel('Z')
-        
 class SphericalReflection(SphericalIntercept):
     """
     A spherically reflecting optical element (inheriting from OpticalElement)
@@ -201,36 +201,33 @@ class SphericalReflection(SphericalIntercept):
         super().__init__(z_0=z_0, aperture=aperture, curvature=curvature)
         
         
-    def propagate_ray(self, ray) -> np.ndarray | None: 
-        """
-        Reflects the ray off the surface.
-
-        Args:
-            ray (Ray): The ray to be reflected
-
-        Returns:
-            Ray/None: The reflected Ray or None if there is no reflection.
-        """
+    def propagate_ray(self, ray) -> Ray | None:
         intercept = self.intercept(ray)
         if intercept is None:
-            # no intersection = no reflection
             return None
-        
-        R = 1. / self._curvature
-        # The normal vector depends on the orientation of the surface
-        if self._curvature < 0:
-            normal = - (intercept - np.array([0., 0., self._z_0 + R]))
-        else: 
-            normal = intercept - np.array([0., 0., self._z_0 + R])
+
+        # 1) signed radius
+        R = 1.0 / self._curvature
+
+        # 2) sphere center in lab coords
+        C = np.array([0.0, 0.0, self._z_0 + R])
+
+        # 3) “raw” outward normal (points away from center)
+        normal = intercept - C
         normal /= np.linalg.norm(normal)
-    
-        reflected_direc = reflect(direc = ray.direc(), normal = normal)
-        if reflected_direc is None:
-            # no reflection
+
+        # 4) flip it if it isn’t opposing the incoming ray
+        if np.dot(normal, ray.direc()) > 0:
+            normal = -normal
+
+        # 5) reflect!
+        reflected = reflect(direc=ray.direc(), normal=normal)
+        if reflected is None:
             return None
-        
-        ray.append(intercept, reflected_direc)
+
+        ray.append(intercept, reflected)
         return ray
+
     
     def focal_point(self) -> float:
         """
@@ -242,7 +239,7 @@ class SphericalReflection(SphericalIntercept):
         R = 1. / np.abs(self._curvature)
         return self._z_0 - R/2 
     
-
+    
 class PlaneIntercept(OpticalElement):
     def __init__(self, z_0: float):
         self._z_0 = z_0
@@ -359,8 +356,14 @@ class PlaneRefraction(PlaneIntercept):
         X, Y = np.meshgrid(x, y)
         
         # at optical axis position
-        Z = np.zeros_like(X) + self._z_0
+        Z = np.zeros_like(X) + self._z_0 
 
+        center_z = self._z_0 + r_max
+        R_sq = X**2 + Y**2
+        inside = R_sq <= r_max**2
+        Z = np.full_like(X, np.nan)
+        Z[inside] = center_z - np.sqrt(r_max**2 - R_sq[inside])
+        
         ax.plot_surface(X, Y, Z, alpha=0.5, color='cyan', rstride=1, cstride=1, linewidth=0)
         ax.set_xlabel('X')
         ax.set_ylabel('Y')

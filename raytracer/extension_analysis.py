@@ -1,7 +1,7 @@
 """
 A module to make further investigations using the raytracer code
 """
-from raytracer.lenses import LensMaker
+from raytracer.elements import SphericalReflection, OutputPlane
 from raytracer.rays import RayBundle, DivergingRayBundle
 from scipy.optimize import minimize_scalar
 import matplotlib.pyplot as plt
@@ -13,39 +13,69 @@ def spherical_abberation():
     finding and comparing their focal points with each other and the focal point of the lens.
     """
     
-    z_0 = 50.0
-    lens = LensMaker(
-        z_0=z_0,
-        curvature1=0.02,
-        curvature2=0.02,
-        n_inside=1.5,
-        n_outside=1.0,
-        thickness=5.0,
-        aperture=10.0
-    )
-    calc_focal_point = lens.focal_point()
+    z_0_mirror = 50.
+    z_0_out = -200.
+    mirror = SphericalReflection(z_0=z_0_mirror, curvature=-0.02, aperture=100.)
+    output = OutputPlane(z_0=z_0_out)
+    calc_focal_point = mirror.focal_point()
 
-    bundle = DivergingRayBundle(
+    div_bundle = DivergingRayBundle(
         spread=1.0,
-        nrings=2,
-        multi=6,
-        maxangle=np.pi/4,
-        nangle=10
+        nrings=1,
+        multi=2,
+        maxangle=np.pi/10,
+        nangle=100
     )
-    sim_results = [focus(rays, zbounds=[0, z_0]) for rays in bundle.rays()]
+    div_bundle.propagate_bundle([mirror, output])
+    
+    sim_results = [focus(bundles, zbounds=[z_0_out, z_0_mirror]) for bundles in div_bundle.bundles()]
     sim_focal_points, sim_RMS_vals = zip(*sim_results)
 
-    # angles in rads for each bundle set
-    angles = bundle.angles()
+    angles = div_bundle.angles()
 
-    plt.figure()
-    plt.scatter(angles, sim_focal_points, marker='o', label='Simulated focal lengths')
-    plt.scatter(angles, sim_RMS_vals, marker='x', label='RMS spot size')
+    angles = np.array(angles) # shape (n_angles,)
+    focals = np.array(sim_focal_points) # shape (n_angles * multi,)
+    rms = np.array(sim_RMS_vals) # same shape
+
+    n_angles = len(angles)
+    multi = len(focals) // n_angles # number of bundles per angle (== rays per ring)
+
+    focals_by_angle = focals.reshape(n_angles, multi)
+    rms_by_angle = rms.reshape(n_angles, multi)
+
+    mean_focals = focals_by_angle.mean(axis=1)
+    mean_rms = rms_by_angle.mean(axis=1)
+
+    # Launch angle vs distance from mirror
+    plt.figure(figsize=(6,4))
+    plt.scatter(angles[1:], mean_focals[1:], marker='o', label='Mean focal length')
+    plt.scatter(0, calc_focal_point, marker = 'x', color = 'red')
     plt.xlabel('Launch angle (rad)')
-    plt.ylabel('Distance or RMS (mm)')
-    plt.title('Focal Point and RMS vs Launch Angle')
+    plt.ylabel('Distance (mm)')
+    plt.title('Spherical Aberration vs Launch Angle')
     plt.legend()
     plt.grid(True)
+    
+    # RMS values 
+    plt.figure()
+    plt.scatter(angles, mean_rms, marker='x', label='Mean RMS spot size')
+    plt.xlabel('Launch angle (rad)')
+    plt.ylabel('Min RMS (mm)')
+    plt.title('Min RMS vs Launch Angle')
+    plt.legend()
+    plt.grid(True)
+    
+
+    
+    # Ray tracing figure
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d') 
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')  # type: ignore
+    mirror.plot_surface(ax)
+    ax.scatter([0], [0], [calc_focal_point], c='red', marker='x')
+    ax = div_bundle.track_plot(ax)
     plt.show()
     
 def focus(bundle: RayBundle, zbounds: list[float]) -> tuple:
@@ -95,3 +125,5 @@ if __name__ == "__main__":
     spherical_abberation()
     plt.show()
     
+    
+    # To do: fix focal length for biconvex, fix data representation 
