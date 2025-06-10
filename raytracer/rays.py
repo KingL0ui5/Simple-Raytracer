@@ -97,10 +97,12 @@ class RayBundle:
                 ray = element.propagate_ray(ray)
         return self
         
-    def track_plot(self, ax):
+    def track_plot(self, ax = None):
         """
         Create a 3D plot of the vertices of all rays in the bundle.
         
+        Args: 
+            ax (optional, matplotlib axis object): the axis onto whih the plot is added
         Returns:
             fig: A matplotlib figure containing the 3D plot of the ray vertices.
         """
@@ -111,9 +113,14 @@ class RayBundle:
         y = points[:, 1]
         z = points[:, 2]    
         
-        ax.plot(x, y, z, marker='o') 
-    
-        return ax
+        if ax is None: 
+            fig = plt.figure()
+            plt.plot(x, y, z, marker='o')
+            return fig
+
+        else:
+            ax.plot(x, y, z, marker='o') 
+            return ax
         
     def rms(self):
         """

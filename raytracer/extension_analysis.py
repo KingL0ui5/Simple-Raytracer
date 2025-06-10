@@ -14,10 +14,12 @@ def spherical_abberation():
     """
     
     z_0_mirror = 50.
-    z_0_out = -200.
     mirror = SphericalReflection(z_0=z_0_mirror, curvature=-0.02, aperture=100.)
+    calc_focal_point = mirror._z_0 - mirror.focal_length()
+    
+    z_0_out = calc_focal_point - 50.
     output = OutputPlane(z_0=z_0_out)
-    calc_focal_point = mirror.focal_point()
+    
 
     div_bundle = DivergingRayBundle(
         spread=1.0,

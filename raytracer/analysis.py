@@ -372,6 +372,7 @@ def task16():
     fig2 = plt.figure()
     ax2 = fig2.add_subplot(111, projection='3d') 
     bundle_pc.track_plot(ax2) 
+    print(type(cp), type(pc))
     ax2.set_xlabel('X')
     ax2.set_ylabel('Y')
     ax2.set_zlabel('Z')  # type: ignore  
@@ -459,7 +460,7 @@ def task18():
     ax.set_title('Ray Vertices Path task 18')
     
 
-    return [ax, sph_refl.focal_point()]
+    return [fig, sph_refl.focal_point()]
 
 
 if __name__ == "__main__":

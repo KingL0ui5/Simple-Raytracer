@@ -115,6 +115,38 @@ class Lens(OpticalElement):
                 return None
             ray = next_ray
         return ray
+    
+    @staticmethod
+    def _adjust_aperture(thickness, curvature, requested_aperture):
+        """
+        Adjust aperture if it's too large for the given thickness and curvature.
+        
+        For a spherical surface with curvature C and thickness t, the maximum
+        aperture occurs when the spherical surface just touches the plane at
+        the given thickness.
+        
+        Args:
+            thickness (float): thickness of the lens
+            curvature (float): curvature of the spherical surface
+            requested_aperture (float): the requested aperture
+            
+        Returns:
+            float: the adjusted aperture (either original or reduced)
+        """
+        
+        radius = abs(1. / curvature)
+
+        if thickness >= radius:
+            max_aperture = 2 * radius
+        else:
+            discriminant = 2 * radius * thickness - thickness**2
+            
+            if discriminant <= 0:
+                max_aperture = 0  # No valid aperture
+            else:
+                max_aperture = 2 * np.sqrt(discriminant)
+        
+        return min(requested_aperture, max_aperture)
 
 
 class PlanoConvex(Lens):
@@ -146,18 +178,20 @@ class PlanoConvex(Lens):
         self.__radius = 1. / curvature
         R = 1 / curvature
         
+        self._aperture = self._adjust_aperture(thickness, curvature, aperture)
+        
         front = PlaneRefraction(
             z_0=z_0,
             n_1=n_outside,
             n_2=n_inside,
-            aperture=aperture
+            aperture=self._aperture
         )
         back = SphericalRefraction(
             z_0=z_0 + thickness,
             curvature=curvature,
             n_1=n_inside,
             n_2=n_outside,
-            aperture=aperture
+            aperture=self._aperture
         )
         self._surfaces = [front, back]
         
@@ -209,19 +243,20 @@ class ConvexPlano(Lens):
         super().__init__(z_0=z_0, n_inside=n_inside, n_outside=n_outside, thickness=thickness, aperture=aperture)
         self.__curvature = curvature
         self.__radius = 1. / curvature
+        self._aperture = self._adjust_aperture(thickness, curvature, aperture)
 
         front = SphericalRefraction(
             z_0=z_0,
             curvature=curvature,
             n_1=n_outside,
             n_2=n_inside,
-            aperture=aperture
+            aperture=self._aperture
         )
         back = PlaneRefraction(
             z_0=z_0 + thickness,
             n_1=n_inside,
             n_2=n_outside,
-            aperture=aperture
+            aperture=self._aperture
         )
         self._surfaces = [front, back]
         

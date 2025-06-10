@@ -229,15 +229,24 @@ class SphericalReflection(SphericalIntercept):
         return ray
 
     
-    def focal_point(self) -> float:
+    def focal_length(self) -> float:
+        """
+        Finds the focal length of the surface along the optical axis
+
+        Returns:
+            float: The focal length of the surface.
+        """
+        R = 1. / np.abs(self._curvature)
+        return R/2 
+    
+    def focal_point(self) -> float: 
         """
         Finds the focal point of the surface along the optical axis
 
         Returns:
             float: The focal point of the surface.
         """
-        R = 1. / np.abs(self._curvature)
-        return self._z_0 - R/2 
+        return self._z_0 + self.focal_length()
     
     
 class PlaneIntercept(OpticalElement):
@@ -355,14 +364,13 @@ class PlaneRefraction(PlaneIntercept):
         y = np.linspace(-r_max, r_max, resolution)
         X, Y = np.meshgrid(x, y)
         
+        
         # at optical axis position
         Z = np.zeros_like(X) + self._z_0 
 
-        center_z = self._z_0 + r_max
         R_sq = X**2 + Y**2
         inside = R_sq <= r_max**2
-        Z = np.full_like(X, np.nan)
-        Z[inside] = center_z - np.sqrt(r_max**2 - R_sq[inside])
+        Z = Z[inside]
         
         ax.plot_surface(X, Y, Z, alpha=0.5, color='cyan', rstride=1, cstride=1, linewidth=0)
         ax.set_xlabel('X')
